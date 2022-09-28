@@ -1,7 +1,7 @@
 <template lang="pug">
 .main
     .plan(v-if="!lessons[callerID]")
-      img(src="../assets/planv3.png") 
+      img(src="../assets/planv2.png") 
     .clock.mid
         p {{clock}}
     .student.mid
