@@ -1,7 +1,13 @@
 <template lang="pug">
 .main
-    .plan(v-if="!lessons[callerID]")
+    .plan(v-if="callerID == ''")
       img(src="../assets/planv2.png") 
+    .plan2(v-if="callerID == ''")
+      img(src="../assets/planv3.png") 
+    .icons
+      .icon.green(v-if="isOnline")
+      .icon.red(v-if="!isOnline")
+      .icon.orange(v-if="axiosError")
     .clock.mid
         p {{clock}}
     .student.mid
@@ -26,6 +32,9 @@ export default {
   },
   data() {
     return {
+      axiosError: false,
+      callList: [],
+      isOnline: navigator.onLine,
       card: "",
       cards: {},
       students: {},
@@ -67,8 +76,20 @@ export default {
       setTimeout(this.startTime, 1000);
     },
     getStudent: async function () {
-      var res = await axios.get(`${this.axiosHOST}/studentswn`, this.axiosOPT);
-      this.students = res.data
+      try {
+        this.axiosError = false;
+        var res = await axios.get(
+          `${this.axiosHOST}/studentswn`,
+          this.axiosOPT
+        );
+        this.students = res.data;
+        localStorage.setItem("students", JSON.stringify(res.data));
+      } catch (error) {
+        this.axiosError = true;
+        var students = localStorage.getItem("students");
+        if (students) this.students = JSON.parse(students);
+        console.log(error);
+      }
     },
     checkTime: function (i) {
       if (i < 10) {
@@ -77,41 +98,109 @@ export default {
       return i;
     },
     getToday: async function () {
-      var res = await axios.get(
-        `${this.axiosHOST}/getTodayRecord`,
-        this.axiosOPT
-      );
-      var todays = res.data.todays;
-      todays.forEach((element) => {
-        if (!this.lessons[element.student])
-          this.$set(this.lessons, element.student, []);
-        this.lessons[element.student].push(element);
-      });
+      try {
+        this.axiosError = false;
+        var res = await axios.get(
+          `${this.axiosHOST}/getTodayRecord`,
+          this.axiosOPT
+        );
+        var todays = res.data.todays;
+        todays.forEach((element) => {
+          if (!this.lessons[element.student])
+            this.$set(this.lessons, element.student, []);
+          this.lessons[element.student].push(element);
+        });
+        localStorage.setItem("todays", JSON.stringify(res.data.todays));
+      } catch (error) {
+        this.axiosError = true;
+        var today = [];
+        if (localStorage.getItem("todays"))
+          today = JSON.parse(localStorage.getItem("todays"));
+        today.forEach((element) => {
+          if (!this.lessons[element.student])
+            this.$set(this.lessons, element.student, []);
+          this.lessons[element.student].push(element);
+        });
+        console.log(error);
+      }
     },
     getRolls: async function () {
-      var res = await axios.get(`${this.axiosHOST}/todaysRoll`, this.axiosOPT);
-      var todays = res.data;
-      todays.forEach((element) => {
-        console.log(element);
-      });
+      try {
+        this.axiosError = false;
+        var res = await axios.get(
+          `${this.axiosHOST}/todaysRoll`,
+          this.axiosOPT
+        );
+        var todays = res.data;
+        todays.forEach((element) => {
+          console.log(element);
+        });
+      } catch (error) {
+        this.axiosError = true;
+        console.log(error);
+      }
     },
     clear: function () {
       this.caller = "";
       this.callerID = "";
     },
     call: async function (card) {
-      let res = await axios.post(
-        `${this.axiosHOST}/rollCall`,
-        { card: card },
-        this.axiosOPT
-      );
-      console.log(res);
+      try {
+        this.axiosError = false;
+        let res = await axios.post(
+          `${this.axiosHOST}/rollCall`,
+          { card: card },
+          this.axiosOPT
+        );
+        if (res.data.card) {
+          var index = this.callList.indexOf(card);
+          if (index !== -1) {
+            this.callList.splice(index, 1);
+          }
+        }
+        localStorage.setItem('callList', this.callList)
+      } catch (error) {
+        this.axiosError = true;
+        console.log(error);
+      }
     },
     getCards: async function () {
-      const res = await axios.get(`${this.axiosHOST}/getRC`, this.axiosOPT);
-      for (const [key, val] of Object.entries(res.data)) {
+      try {
+        this.axiosError = false;
+        const res = await axios.get(`${this.axiosHOST}/getRC`, this.axiosOPT);
+        localStorage.setItem("cards", JSON.stringify(res.data));
+        for (const [key, val] of Object.entries(res.data)) {
           this.$set(this.cards, val.card, val);
         }
+      } catch (error) {
+        this.axiosError = true;
+        let cardcard = localStorage.getItem("cards");
+        if (cardcard) {
+          let cards = JSON.parse(cardcard);
+          for (const [key, val] of Object.entries(cards)) {
+            this.$set(this.cards, val.card, val);
+          }
+        }
+        console.log(error);
+      }
+    },
+    getDateToday: function () {
+      var today = new Date();
+      var dd = String(today.getDate()).padStart(2, "0");
+      var mm = String(today.getMonth() + 1).padStart(2, "0"); //January is 0!
+      var yyyy = today.getFullYear();
+      return dd + "." + mm + "." + yyyy;
+    },
+    localCallList: function () {
+      var check = localStorage.getItem("date");
+      var date = this.getDateToday();
+      if (date != check) {
+        localStorage.setItem("date", date);
+        localStorage.removeItem("callList");
+        localStorage.removeItem("todays");
+      }
+      var list = localStorage.getItem("callList");
+      if (list) this.callList = list.split(",");
     },
     scan: function () {
       window.addEventListener("keydown", (e) => {
@@ -119,9 +208,12 @@ export default {
           this.cardnum = this.cardnum.substr(this.cardnum.length - 12);
         }
         if (e.key == "Enter" || e.key == "Escape") {
+          this.isOnline = navigator.onLine;
           let c = this.cards[this.cardnum];
           if (c) {
-            this.call(this.cardnum);
+            if (!this.callList.includes(this.cardnum))
+              this.callList.push(this.cardnum);
+            localStorage.setItem("callList", this.callList);
             this.callerID = c.student;
             this.caller = this.students[c.student].name;
             var caller = this.students[c.student].name;
@@ -132,6 +224,10 @@ export default {
               }
             }, timeout);
           }
+          this.callList.forEach((e) => {
+            this.call(e);
+          });
+          console.log(this.callList);
           this.cardnum = "";
         } else if (e.key.length == 1) {
           this.cardnum += e.key;
@@ -140,16 +236,15 @@ export default {
     },
   },
   mounted() {
+    this.localCallList();
     this.getCards();
     this.startTime();
     this.getStudent();
     this.scan();
     this.getToday();
-
     this.getRolls();
   },
 };
-
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
@@ -168,6 +263,7 @@ export default {
   position: absolute;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: radial-gradient(
     circle,
     colors.$gray6 0%,
@@ -175,7 +271,6 @@ export default {
     colors.$background-color 100%
   );
   background-size: 300% 300%;
-  background-color: red;
   animation: AnimateBG 20s ease infinite;
 }
 .mid {
@@ -255,19 +350,57 @@ export default {
     opacity: 20%;
   }
 }
-.plan{
+.plan {
   position: absolute;
   top: 0;
   left: 0;
-  height: 100vh;
+  height: 67vh;
   width: 100vw;
   display: flex;
   justify-content: center;
-  align-items: center;
-  img{
-    animation: AnimateOP 12s ease infinite;
-    opacity: 20%;
-    width: 96vw;
+  align-items: flex-end;
+  img {
+    opacity: 30%;
+    height: 60vh;
   }
+}
+.plan2 {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 30vh;
+  width: 100vw;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  img {
+    opacity: 50%;
+    height: 25vh;
+  }
+}
+.icon {
+  background-color: colors.$gray6;
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+}
+.green {
+  background-color: colors.$green;
+}
+.red {
+  background-color: colors.$red;
+}
+.orange {
+  background-color: colors.$orange;
+}
+.icons {
+  height: 24px;
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+  width: 72px;
+  position: absolute;
+  top: 12px;
+  left: 12px;
 }
 </style>
