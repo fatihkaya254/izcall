@@ -32,6 +32,7 @@ export default {
   },
   data() {
     return {
+      validKeys:["0","1","2","3","4","5","6","7","8","9"], 
       axiosError: false,
       callList: [],
       isOnline: navigator.onLine,
@@ -205,7 +206,7 @@ export default {
     scan: function () {
       window.addEventListener("keydown", (e) => {
         if (this.cardnum.length >= 13) {
-          this.cardnum = this.cardnum.substr(this.cardnum.length - 12);
+          this.cardnum = this.cardnum.substr(this.cardnum.length - 10);
         }
         if (e.key == "Enter" || e.key == "Escape") {
           this.isOnline = navigator.onLine;
@@ -229,7 +230,7 @@ export default {
           });
           console.log(this.callList);
           this.cardnum = "";
-        } else if (e.key.length == 1) {
+        } else if (this.validKeys.includes(e.key)) {
           this.cardnum += e.key;
         }
       });
@@ -360,7 +361,6 @@ export default {
   justify-content: center;
   align-items: flex-end;
   img {
-    opacity: 30%;
     height: 60vh;
   }
 }
@@ -374,7 +374,6 @@ export default {
   justify-content: center;
   align-items: flex-start;
   img {
-    opacity: 50%;
     height: 25vh;
   }
 }
