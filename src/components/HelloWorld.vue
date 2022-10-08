@@ -77,6 +77,7 @@ export default {
       setTimeout(this.startTime, 1000);
     },
     getStudent: async function () {
+      console.log('getStudent()');
       try {
         this.axiosError = false;
         var res = await axios.get(
@@ -99,6 +100,8 @@ export default {
       return i;
     },
     getToday: async function () {
+      console.log('getToday()');
+
       try {
         this.axiosError = false;
         var res = await axios.get(
@@ -126,6 +129,7 @@ export default {
       }
     },
     getRolls: async function () {
+      console.log('getRolls()');
       try {
         this.axiosError = false;
         var res = await axios.get(
@@ -166,6 +170,7 @@ export default {
       }
     },
     getCards: async function () {
+      console.log('getCards()');
       try {
         this.axiosError = false;
         const res = await axios.get(`${this.axiosHOST}/getRC`, this.axiosOPT);
@@ -196,9 +201,13 @@ export default {
       var check = localStorage.getItem("date");
       var date = this.getDateToday();
       if (date != check) {
+        console.log('not');
         localStorage.setItem("date", date);
         localStorage.removeItem("callList");
         localStorage.removeItem("todays");
+        this.getCards();
+        this.getStudent();
+        this.getToday();
       }
       var list = localStorage.getItem("callList");
       if (list) this.callList = list.split(",");
@@ -209,6 +218,8 @@ export default {
           this.cardnum = this.cardnum.substr(this.cardnum.length - 10);
         }
         if (e.key == "Enter" || e.key == "Escape") {
+          if(this.cardnum == 1234) localStorage.clear()
+          this.localCallList();
           this.isOnline = navigator.onLine;
           let c = this.cards[this.cardnum];
           if (c) {
@@ -228,7 +239,6 @@ export default {
           this.callList.forEach((e) => {
             this.call(e);
           });
-          console.log(this.callList);
           this.cardnum = "";
         } else if (this.validKeys.includes(e.key)) {
           this.cardnum += e.key;
@@ -238,12 +248,12 @@ export default {
   },
   mounted() {
     this.localCallList();
-    this.getCards();
     this.startTime();
     this.getStudent();
     this.scan();
     this.getToday();
-    this.getRolls();
+    this.getCards();
+    //this.getRolls();
   },
 };
 </script>
