@@ -205,7 +205,7 @@ export default {
     },
     scan: function () {
       window.addEventListener("keydown", (e) => {
-        if (this.cardnum.length >= 13) {
+        if (this.cardnum.length >= 11) {
           this.cardnum = this.cardnum.substr(this.cardnum.length - 10);
         }
         if (e.key == "Enter" || e.key == "Escape") {
